@@ -1,7 +1,7 @@
 import os,codecs 
 import numpy as np 
 
-datapath = '../dataset/'
+datapath = './dataset/'
 
 files = os.listdir(datapath)
 
