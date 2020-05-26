@@ -19,7 +19,7 @@ x_train = x_train.reshape(60000,784).T
 # print(x_train[:,0])
 # x_train = ((x_train - np.mean(x_train))/ np.std(x_train))
 
-x_test = x_test.reshape(10000,784)
+x_test = x_test.reshape(10000,784).T
 
 y_train = hotkey(y_train)
 y_test = hotkey(y_test)
@@ -28,16 +28,16 @@ y_test = hotkey(y_test)
 class network:
 	def __init__(self,x,y):
 		self.cache = {}
-		self.cache['x'] = x[:,0].reshape(784,1)
-		self.cache['y'] = y[0].reshape(10,1)
-		self.cache['w1'] = np.random.random((28,784))
-		self.cache['w2'] = np.random.random((16,28))
-		self.cache['w3'] = np.random.random((28,16))
-		self.cache['w4'] = np.random.random((10,28))
-		self.cache['b1'] = np.random.random((28,1))
-		self.cache['b2'] = np.random.random((16,1))
-		self.cache['b3'] = np.random.random((28,1))
-		self.cache['b4'] = np.random.random((10,1))
+		self.cache['x'] = x[:,0:10]#[:,0].reshape(784,1)
+		self.cache['y'] = y[0:10].T #[0].reshape(10,1)
+		self.cache['w1'] = np.random.random((784,28))
+		self.cache['w2'] = np.random.random((28,16))
+		self.cache['w3'] = np.random.random((16,28))
+		self.cache['w4'] = np.random.random((28,10))
+		self.cache['b1'] = np.random.random((28,1)).T
+		self.cache['b2'] = np.random.random((16,1)).T
+		self.cache['b3'] = np.random.random((28,1)).T
+		self.cache['b4'] = np.random.random((10,1)).T
 		
 		
 
@@ -46,25 +46,37 @@ class network:
 		if x is None:
 			x = self.cache['x']
 		# print()
+		# print(x[:,0] - x[:,1])
+		# print(x[:,1])
 		#print(x)
 		w1,w2,w3,w4,b1,b2,b3,b4 = self.get('w1','w2','w3','w4','b1','b2','b3','b4')
-		z1 = np.dot(w1,x) + b1
-		a1 = sigmoid(z1)
-		dz1 = sigmoid_prime(z1)
-		
+		#print(np.dot(w1.T,x))
+		z1 = np.dot(w1.T,x ) #+ b1
+		# print(np.dot(w1.T,x))
 
-		z2 = np.dot(w2,a1) + b2
-		a2 = sigmoid(z2)
-		dz2 = sigmoid_prime(z2)
+		a1 = relu(z1)
+		dz1 = relu_prime(z1)
 
-		z3 = np.dot(w3,a2) +b3
-		a3 = sigmoid(z3)
-		dz3 = sigmoid_prime(z3)
+		#print(a1)
+ 
+		z2 = np.dot(w2.T,a1) #+ b2
+		# print(a1)
 
-		z4 = np.dot(w4,a3) + b4
+		a2 = relu(z2)
+		dz2 = relu_prime(z2)
+
+
+
+		z3 = np.dot(w3.T ,a2) #+b3
+		a3 = relu(z3)
+		dz3 = relu_prime(z3)
+
+		z4 = np.dot(w4.T,a3) #+ b4
 		a4 = softmax(z4)
+
+		#print(z1,z2,z3,z4 , sep='\n')
 		
-		#print(a4, end = '\n')
+		#print(a4.T, end = '\n')
 
 		self.put(dz1=dz1,dz2=dz2,dz3=dz3,a4=a4,a3=a3,a2=a2,a1=a1)
 		return a4
@@ -77,31 +89,37 @@ class network:
 
 		return cost/1
 
-	def backward(self):
-		
-		a4,a3,a2,a1,y,w4,w3,w2,w1,dz3,dz2,dz1,x = self.get('a4','a3','a2','a1','y','w4','w3','w2','w1','dz3','dz2','dz1','x')
+
+	def backward(self,y=None,x=None):
+		if y is None:
+			y = self.cache['y']
+
+		if x is None:
+			x = self.cache['x']
+
+		a4,a3,a2,a1,w4,w3,w2,w1,dz3,dz2,dz1= self.get('a4','a3','a2','a1','w4','w3','w2','w1','dz3','dz2','dz1')
 
 		theta4 = (a4 - y)
-		theta3 = np.dot(theta4.T,w4) * dz3.T
-		theta2 = np.dot(theta3,w3) * dz2.T
-		theta1 = np.dot(theta2,w2) * dz1.T
+		theta3 = np.multiply(dz3,np.dot(w4,theta4))
+		theta2 = np.multiply(dz2,np.dot(w3,theta3))
+		theta1 = np.multiply(dz1,np.dot(w2,theta2))
 
 		dw4 = np.dot(theta4,a3.T)/1
-		dw3 = np.dot(theta3.T,a2.T)/1
-		dw2 = np.dot(theta2.T,a1.T)/1
-		dw1 = np.dot(theta1.T,x.T)/1
+		dw3 = np.dot(theta3,a2.T)/1
+		dw2 = np.dot(theta2,a1.T)/1
+		dw1 = np.dot(theta1,x.T)/1
 
-		print(theta4.shape , w4.shape,dz3.shape,theta3.shape,a2.shape,dw3.shape)
+		#print(theta4.shape , w4.shape,dz3.shape,theta3.shape,a2.shape,dw3.shape)
 
 		self.put(dw4 = dw4,dw2=dw2,dw3=dw3,dw1=dw1)
 
-	def update(self,rate = 0.05):
+	def update(self,rate = 0.005):
 		w1,w2,w3,w4,dw1,dw2,dw3,dw4 = self.get('w1','w2','w3','w4','dw1','dw2','dw3','dw4')
 
-		w1 -= rate*dw1
-		w2 -= rate*dw2
-		w3 -= rate*dw3
-		w4 -= rate*dw4
+		w1 -= rate*dw1.T
+		w2 -= rate*dw2.T
+		w3 -= rate*dw3.T
+		w4 -= rate*dw4.T
 
 		# print(dw3)
 		# print()
@@ -119,26 +137,32 @@ class network:
 
 
 def main():
-	bar = ProgressBar()
+	bar = ProgressBar(maxval = 600000)
 	costs = []
 	net = network(x_train,y_train)
-	#print(net.forward())
-	for i in (range(100)):
+
+	for i in (range(1000)):
 		out = net.forward()
-		# if i%100 == 0 and i!=0:
+		# if i%10 == 0 and i!=0:
 		costs.append(net.cost(out))
 		net.backward()
 		net.update()	
 
-	print(np.argmax(net.forward(), axis = 0))
-	print(net.cache['y'])
+	print(np.argmax((net.forward().T), axis = 1) )
+	print(np.argmax(net.cache['y'].T , axis = 1))
+		
 
-	# 	print(costs)
+
+
+	#print(costs)
 
 	# plt.plot(costs)
 
 	# plt.show()
-	# plt.close()
+
+	# plt.show(block=False)
+	# #plt.pause(6)
+	# #plt.close()
 
 
 

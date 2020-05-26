@@ -7,10 +7,10 @@ def sigmoid_prime(z):
 	return sigmoid(z)*(1-sigmoid(z))
 
 def relu(z):
-	return np.maximum(z,0)
+	return np.maximum(z,0.001)
 
 def relu_prime(x):
-    x[x<=0] = 0
+    x[x<=0] = 0.001
     x[x>0] = 1
     return x
  	
@@ -24,10 +24,12 @@ def hotkey(z):
 	return np.array(hot)
 
 def softmax(z):
-	shift = z - np.max(z)
+	maxs = np.max(z,axis= 0)
+
+	shift = z - maxs
 	#print(shift)
 	exp = np.exp(shift)
-
-	return exp/np.sum(exp, axis = 0)
+	sums = np.sum(exp , axis = 0)
+	return exp/sums
 
 
