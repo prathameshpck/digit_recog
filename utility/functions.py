@@ -10,9 +10,12 @@ def relu(z):
 	return np.maximum(z,0.001)
 
 def relu_prime(x):
-    x[x<=0] = 0.001
-    x[x>0] = 1
-    return x
+	y = x
+
+	y[y<=0] = 0.001
+	y[y>0] = 1
+
+	return y
  	
 def hotkey(z):
 	hot = []

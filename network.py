@@ -5,6 +5,9 @@ import numpy as np
 from time import sleep
 import sys
 import matplotlib.pyplot as plt
+
+
+bar = ProgressBar()
 np.set_printoptions(threshold = sys.maxsize)
 x_train,y_train, x_test,y_test = load()
 
@@ -13,7 +16,7 @@ factor = 0.99/255
 x_train = ((x_train - np.mean(x_train))/ np.std(x_train))/255 
 
 #x_train = (x_train * factor)+0.01
-
+print(y_train[0:20])
 
 x_train = x_train.reshape(60000,784).T
 # print(x_train[:,0])
@@ -28,8 +31,8 @@ y_test = hotkey(y_test)
 class network:
 	def __init__(self,x,y):
 		self.cache = {}
-		self.cache['x'] = x[:,0:10]#[:,0].reshape(784,1)
-		self.cache['y'] = y[0:10].T #[0].reshape(10,1)
+		self.cache['x'] = x#[:,0:10]#[:,0].reshape(784,1)
+		self.cache['y'] = y#[0:10].T #[0].reshape(10,1)
 		self.cache['w1'] = np.random.random((784,28))
 		self.cache['w2'] = np.random.random((28,16))
 		self.cache['w3'] = np.random.random((16,28))
@@ -87,7 +90,23 @@ class network:
 		#print(y.shape,y_hat.shape)
 		cost = -np.sum(np.sum(y.T*np.log(y_hat),axis = 0))
 
-		return cost/1
+		return cost/32
+
+	def train(self,epoch = 100):
+		x = self.cache['x']
+		y = self.cache['y']
+		costs = []
+		batches = np.split(x,1875,axis=1)
+		targets = np.split(y,1875)
+		for i in bar(range(epoch)):
+			for batch,target in zip(batches,targets):
+				out = self.forward(x = batch)
+				costs.append(self.cost(out,target))
+				self.backward(y=target,x=batch)
+				self.update()
+
+		return costs
+
 
 
 	def backward(self,y=None,x=None):
@@ -99,15 +118,15 @@ class network:
 
 		a4,a3,a2,a1,w4,w3,w2,w1,dz3,dz2,dz1= self.get('a4','a3','a2','a1','w4','w3','w2','w1','dz3','dz2','dz1')
 
-		theta4 = (a4 - y)
+		theta4 = (a4 - y.T)
 		theta3 = np.multiply(dz3,np.dot(w4,theta4))
 		theta2 = np.multiply(dz2,np.dot(w3,theta3))
 		theta1 = np.multiply(dz1,np.dot(w2,theta2))
 
-		dw4 = np.dot(theta4,a3.T)/1
-		dw3 = np.dot(theta3,a2.T)/1
-		dw2 = np.dot(theta2,a1.T)/1
-		dw1 = np.dot(theta1,x.T)/1
+		dw4 = np.dot(theta4,a3.T)/32
+		dw3 = np.dot(theta3,a2.T)/32
+		dw2 = np.dot(theta2,a1.T)/32
+		dw1 = np.dot(theta1,x.T)/32
 
 		#print(theta4.shape , w4.shape,dz3.shape,theta3.shape,a2.shape,dw3.shape)
 
@@ -141,24 +160,28 @@ def main():
 	costs = []
 	net = network(x_train,y_train)
 
-	for i in (range(1000)):
-		out = net.forward()
-		# if i%10 == 0 and i!=0:
-		costs.append(net.cost(out))
-		net.backward()
-		net.update()	
+	# for i in (range(1000)):
+	# 	out = net.forward()
+	# 	# if i%10 == 0 and i!=0:
+	# 	costs.append(net.cost(out))
+	# 	net.backward()
+	# 	net.update()	
 
-	print(np.argmax((net.forward().T), axis = 1) )
-	print(np.argmax(net.cache['y'].T , axis = 1))
+	costs = net.train()
+
+	# print(np.argmax((net.forward(net.cache['x'][:,0:50]).T), axis = 1) )
+	# print(np.argmax(net.cache['y'][0:50] , axis = 1).T)	
+	print(np.argmax((net.forward(x_test[:,0:50]).T), axis = 1) )
+	print(np.argmax(y_test[0:50] , axis = 1).T)
 		
 
 
 
 	#print(costs)
 
-	# plt.plot(costs)
+	plt.plot(costs , markevery = 1000)
 
-	# plt.show()
+	plt.show()
 
 	# plt.show(block=False)
 	# #plt.pause(6)
