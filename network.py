@@ -142,18 +142,14 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-
-
 	costs = net.train(epoch = 100)
 
+	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
+	
+	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
+	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
 
-	print(np.argmax((net.forward(x_test[:,0:50]).T), axis = 1) )
-	print(np.argmax(y_test[0:50] , axis = 1).T)
-		
-
-
-
-
+	print(accuracy(pred,y))
 
 	plt.plot(costs)
 	plt.show()
