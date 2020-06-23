@@ -35,4 +35,14 @@ def softmax(z):
 	sums = np.sum(exp , axis = 0)
 	return exp/sums
 
+def accuracy(x,y):
+	count = 0 
+	for a,b in zip(x,y):
+		if a==b:
+			count+=1
+
+	return count*100/x.shape[0]
+
+
+
 

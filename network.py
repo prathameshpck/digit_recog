@@ -156,8 +156,6 @@ class network:
 
 
 def main():
-	bar = ProgressBar(maxval = 600000)
-	costs = []
 	net = network(x_train,y_train)
 
 	# for i in (range(1000)):
@@ -167,12 +165,17 @@ def main():
 	# 	net.backward()
 	# 	net.update()	
 
-	costs = net.train()
+	costs = net.train(epoch = 100)
+
+	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
 
 	# print(np.argmax((net.forward(net.cache['x'][:,0:50]).T), axis = 1) )
 	# print(np.argmax(net.cache['y'][0:50] , axis = 1).T)	
-	print(np.argmax((net.forward(x_test[:,0:50]).T), axis = 1) )
-	print(np.argmax(y_test[0:50] , axis = 1).T)
+	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
+	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
+
+	print(accuracy(pred,y))
+
 		
 
 
