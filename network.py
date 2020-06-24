@@ -5,6 +5,7 @@ import numpy as np
 from time import sleep
 import sys
 import matplotlib.pyplot as plt
+import csv
 
 
 bar = ProgressBar()
@@ -32,15 +33,19 @@ class network:
 		self.cache = {}
 		self.cache['x'] = x
 		self.cache['y'] = y
-		self.cache['w1'] = np.random.random((784,64))
-		self.cache['w2'] = np.random.random((64,50))
-		self.cache['w3'] = np.random.random((50,45))
-		self.cache['w4'] = np.random.random((45,10))
+		self.cache['w1'] = np.random.random((784,100))
+		self.cache['w2'] = np.random.random((100,72))
+		self.cache['w3'] = np.random.random((72,54))
+		self.cache['w4'] = np.random.random((54,10))
 		self.cache['b1'] = np.random.random((64,1)).T
 		self.cache['b2'] = np.random.random((50,1)).T
 		self.cache['b3'] = np.random.random((45,1)).T
 		self.cache['b4'] = np.random.random((10,1)).T
 		
+		with open("accuracy.csv" , "w") as f:
+			t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
+			t.writeheader()
+
 		
 
 
@@ -75,7 +80,7 @@ class network:
 	def cost(self,y_hat,y = None):
 		if y is None:
 			y = self.cache['y'].T
-		cost = -np.sum(np.sum(y.T*np.log(y_hat , where = y_hat >0),axis = 0))
+		cost = -np.sum(np.sum(y.T*np.log(y_hat),axis = 0))
 
 		return cost/32
 
@@ -86,11 +91,21 @@ class network:
 		batches = np.split(x,1875,axis=1)
 		targets = np.split(y,1875)
 		for i in bar(range(epoch)):
-			for batch,target in zip(batches,targets):
-				out = self.forward(x = batch)
-				costs.append(self.cost(out,target))
-				self.backward(y=target,x=batch)
-				self.update()
+			with open("accuracy.csv" , "a") as f:
+				t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
+			
+				for num,(batch,target) in enumerate(zip(batches,targets)):
+					out = self.forward(x = batch)
+					costs.append(self.cost(out,target))
+					
+					self.backward(y=target,x=batch)
+					self.update()
+
+				pred = np.argmax(out.T, axis = 1).reshape(32,1)
+				y = np.argmax(target , axis = 1).T.reshape(32,1)
+
+				t.writerow({'cost' : self.cost(out,target) , 'accuracy' : accuracy(pred,y)})
+
 
 		return costs
 
@@ -118,7 +133,7 @@ class network:
 
 		self.put(dw4 = dw4,dw2=dw2,dw3=dw3,dw1=dw1)
 
-	def update(self,rate = 0.005):
+	def update(self,rate = 0.0005):
 		w1,w2,w3,w4,dw1,dw2,dw3,dw4 = self.get('w1','w2','w3','w4','dw1','dw2','dw3','dw4')
 
 		w1 -= rate*dw1.T
@@ -142,15 +157,18 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 100)
+	costs = net.train(epoch = 4000)
 
 	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
 	
 	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
 	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
 
-	print(accuracy(pred,y))
+	pred1 = np.argmax((net.forward().T), axis = 1).reshape(60000,1)
+	y1 = np.argmax(y_train , axis = 1).T.reshape(60000,1)
 
+	print(accuracy(pred,y))
+	print(accuracy(pred1,y1))
 	plt.plot(costs)
 	plt.show()
 
