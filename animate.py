@@ -5,17 +5,22 @@ import pandas as pd
 
 fig, (ax1,ax2) = plt.subplots(nrows = 2 , ncols = 1)
 
-def animate(i):
+def get_data():
 	accu = pd.read_csv('accuracy.csv')
 	cost = accu['cost']
 	accuracy = accu['accuracy']
-	print(i)
-	plt.cla()
-	line1 ,  = ax1.plot(cost)
-	line2 ,  = ax2.plot(accuracy)
-	plt.tight_layout()
-	
-	return (line1 , line2)
+	return cost,accuracy
 
-ani = FuncAnimation(plt.gcf() , animate , blit = True , interval = 200)
+while True:
+	
+	x,y = get_data()
+
+
+
+	
+	line1 ,  = ax1.plot(x)
+	line2 ,  = ax2.plot(y)
+	fig.canvas.draw()
+	plt.pause(0.2)
+
 plt.show()
