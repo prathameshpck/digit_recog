@@ -57,10 +57,13 @@ class network:
 		a1 = relu(z1)
 		dz1 = relu_prime(z1)
 
-	
-		z2 = np.dot(w2.T,a1) #+ b2
+		temp = (np.dot(w2.T , a1))
+		z2 = (np.dot(w2.T,a1)) #+ b2
 		a2 = relu(z2)
 		dz2 = relu_prime(z2)
+		#print(np.dot(w2.T , a1))
+		print(temp)
+		print(z2)
 
 		z3 = np.dot(w3.T ,a2) #+b3
 		a3 = relu(z3)
@@ -89,11 +92,13 @@ class network:
 		x = self.cache['x']
 		y = self.cache['y']
 		costs = []
-		batches = np.split(x,1875,axis=1)
+		batches = np.array(np.split(x,1875,axis=1))
+		print(batches.shape	)
 		targets = np.split(y,1875)
 		j=0
 		for i in bar(range(epoch)):
-			for batch,target in zip(batches,targets):
+			for batch,target in zip(batches[0:2 , : ,: ] ,targets):
+				#print(batch.shape)
 				# print(j)
 				# j+=1
 				out = self.forward(x = batch)
@@ -159,16 +164,21 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 200)
+	costs = net.train(epoch = 1)
 
 	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
 	
-	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
+	
+	
+
+	#print((net.forward(x_test).T))
+
+	#pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
 	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
 
 
-	print(pred[0:10])
-	print(accuracy(pred,y))
+	#print(pred)
+	#print(accuracy(pred,y))
 
 	plt.plot(costs)
 	plt.show()
