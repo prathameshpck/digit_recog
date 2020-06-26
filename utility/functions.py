@@ -1,4 +1,7 @@
 import numpy as np 
+import warnings
+
+warnings.simplefilter('error')
 
 def sigmoid(z):
 	return 1/(1+np.exp(-z))
@@ -12,8 +15,13 @@ def relu(z):
 def relu_prime(x):
 	y = x
 
-	y[y<=0] = 0.001
-	y[y>0] = 1
+	try:
+		y[y<=0] = 0.001
+		y[y>0] = 1
+	except:
+		print(y)
+		print("exit")
+		exit()
 
 	return y
  	

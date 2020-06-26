@@ -4,8 +4,10 @@ from progressbar import ProgressBar
 import numpy as np
 from time import sleep
 import sys
+import warnings
 import matplotlib.pyplot as plt
 
+#warnings.simplefilter('error')
 
 bar = ProgressBar()
 np.set_printoptions(threshold = sys.maxsize)
@@ -35,11 +37,13 @@ class network:
 		self.cache['w1'] = np.random.random((784,64))
 		self.cache['w2'] = np.random.random((64,50))
 		self.cache['w3'] = np.random.random((50,45))
-		self.cache['w4'] = np.random.random((45,10))
+		self.cache['w4'] = np.random.random((45,32))
+		self.cache['w5'] = np.random.random((32,10))
 		self.cache['b1'] = np.random.random((64,1)).T
 		self.cache['b2'] = np.random.random((50,1)).T
 		self.cache['b3'] = np.random.random((45,1)).T
-		self.cache['b4'] = np.random.random((10,1)).T
+		self.cache['b4'] = np.random.random((32,1)).T
+		self.cache['b5'] = np.random.random((10,1)).T
 		
 		
 
@@ -47,35 +51,37 @@ class network:
 	def forward(self, x = None):
 		if x is None:
 			x = self.cache['x']
-		w1,w2,w3,w4,b1,b2,b3,b4 = self.get('w1','w2','w3','w4','b1','b2','b3','b4')
+		w1,w2,w3,w4,w5,b1,b2,b3,b4,b5 = self.get('w1','w2','w3','w4','w5','b1','b2','b3','b4', 'b5')
+		
 		z1 = np.dot(w1.T,x ) #+ b1
-
 		a1 = relu(z1)
 		dz1 = relu_prime(z1)
 
 	
 		z2 = np.dot(w2.T,a1) #+ b2
-	
-
 		a2 = relu(z2)
 		dz2 = relu_prime(z2)
-
-
 
 		z3 = np.dot(w3.T ,a2) #+b3
 		a3 = relu(z3)
 		dz3 = relu_prime(z3)
 
-		z4 = np.dot(w4.T,a3) #+ b4
-		a4 = softmax(z4)
+		z4 = np.dot(w4.T , a3)
+		a4 = relu(z4)
+		dz4 = relu_prime(z4)
 
-		self.put(dz1=dz1,dz2=dz2,dz3=dz3,a4=a4,a3=a3,a2=a2,a1=a1)
-		return a4
+
+		z5 = np.dot(w5.T,a4) #+ b4
+		a5 = softmax(z5)
+
+		#print(a5)
+		self.put(dz1=dz1,dz2=dz2,dz3=dz3,dz4 = dz4,a5 = a5,a4=a4,a3=a3,a2=a2,a1=a1)
+		return a5
 
 	def cost(self,y_hat,y = None):
 		if y is None:
 			y = self.cache['y'].T
-		cost = -np.sum(np.sum(y.T*np.log(y_hat , where = y_hat >0),axis = 0))
+		cost = -np.sum(np.sum(y.T*np.log(y_hat + 0.000001),axis = 0))
 
 		return cost/32
 
@@ -85,8 +91,11 @@ class network:
 		costs = []
 		batches = np.split(x,1875,axis=1)
 		targets = np.split(y,1875)
+		j=0
 		for i in bar(range(epoch)):
 			for batch,target in zip(batches,targets):
+				# print(j)
+				# j+=1
 				out = self.forward(x = batch)
 				costs.append(self.cost(out,target))
 				self.backward(y=target,x=batch)
@@ -103,31 +112,39 @@ class network:
 		if x is None:
 			x = self.cache['x']
 
-		a4,a3,a2,a1,w4,w3,w2,w1,dz3,dz2,dz1= self.get('a4','a3','a2','a1','w4','w3','w2','w1','dz3','dz2','dz1')
+		a5,a4,a3,a2,a1,w5,w4,w3,w2,w1,dz4,dz3,dz2,dz1= self.get('a5','a4','a3','a2','a1','w5','w4','w3','w2','w1','dz4','dz3','dz2','dz1')
 
-		theta4 = (a4 - y.T)
-		theta3 = np.multiply(dz3,np.dot(w4,theta4))
-		theta2 = np.multiply(dz2,np.dot(w3,theta3))
-		theta1 = np.multiply(dz1,np.dot(w2,theta2))
+		# theta4 = (a4 - y.T)
+		# theta3 = np.multiply(dz3,np.dot(w4,theta4))
+		# theta2 = np.multiply(dz2,np.dot(w3,theta3))
+		# theta1 = np.multiply(dz1,np.dot(w2,theta2))
 
+		theta5 = (a5 - y.T)
+		theta4 = np.multiply(dz4 , np.dot(w5,theta5))
+		theta3 = np.multiply(dz3 , np.dot(w4,theta4))
+		theta2 = np.multiply(dz2 , np.dot(w3,theta3))
+		theta1 = np.multiply(dz1 , np.dot(w2,theta2))
+
+		dw5 = np.dot(theta5 ,a4.T)/32
 		dw4 = np.dot(theta4,a3.T)/32
 		dw3 = np.dot(theta3,a2.T)/32
 		dw2 = np.dot(theta2,a1.T)/32
 		dw1 = np.dot(theta1,x.T)/32
 
 
-		self.put(dw4 = dw4,dw2=dw2,dw3=dw3,dw1=dw1)
+		self.put(dw5=dw5,dw4 = dw4,dw2=dw2,dw3=dw3,dw1=dw1)
 
-	def update(self,rate = 0.005):
-		w1,w2,w3,w4,dw1,dw2,dw3,dw4 = self.get('w1','w2','w3','w4','dw1','dw2','dw3','dw4')
+	def update(self,rate = 0.00025):
+		w1,w2,w3,w4,w5,dw1,dw2,dw3,dw4,dw5 = self.get('w1','w2','w3','w4','w5','dw1','dw2','dw3','dw4','dw5')
 
 		w1 -= rate*dw1.T
 		w2 -= rate*dw2.T
 		w3 -= rate*dw3.T
 		w4 -= rate*dw4.T
+		w5 -= rate*dw5.T
 
 
-		self.put(w1=w1,w2=w2,w3=w3,w4=w4)
+		self.put(w1=w1,w2=w2,w3=w3,w4=w4,w5=w5)
 
 
 	def put(self,**kwargs):
@@ -142,13 +159,15 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 100)
+	costs = net.train(epoch = 200)
 
 	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
 	
 	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
 	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
 
+
+	print(pred[0:10])
 	print(accuracy(pred,y))
 
 	plt.plot(costs)
