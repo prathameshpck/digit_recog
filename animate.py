@@ -21,6 +21,6 @@ while True:
 	line1 ,  = ax1.plot(x)
 	line2 ,  = ax2.plot(y)
 	fig.canvas.draw()
-	plt.pause(0.2)
+	plt.pause(0.05)
 
 plt.show()

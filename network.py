@@ -37,10 +37,10 @@ class network:
 		self.cache['w2'] = np.random.random((100,72))
 		self.cache['w3'] = np.random.random((72,54))
 		self.cache['w4'] = np.random.random((54,10))
-		self.cache['b1'] = np.random.random((64,1)).T
-		self.cache['b2'] = np.random.random((50,1)).T
-		self.cache['b3'] = np.random.random((45,1)).T
-		self.cache['b4'] = np.random.random((10,1)).T
+		self.cache['b1'] = np.random.random((100,1))
+		self.cache['b2'] = np.random.random((72,1))
+		self.cache['b3'] = np.random.random((54,1))
+		self.cache['b4'] = np.random.random((10,1))
 		
 		with open("accuracy.csv" , "w") as f:
 			t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
@@ -53,13 +53,13 @@ class network:
 		if x is None:
 			x = self.cache['x']
 		w1,w2,w3,w4,b1,b2,b3,b4 = self.get('w1','w2','w3','w4','b1','b2','b3','b4')
-		z1 = np.dot(w1.T,x ) #+ b1
+		z1 = np.dot(w1.T,x ) +b1
 
 		a1 = relu(z1)
 		dz1 = relu_prime(z1)
 
 	
-		z2 = np.dot(w2.T,a1) #+ b2
+		z2 = np.dot(w2.T,a1) + b2
 	
 
 		a2 = relu(z2)
@@ -67,11 +67,11 @@ class network:
 
 
 
-		z3 = np.dot(w3.T ,a2) #+b3
+		z3 = np.dot(w3.T ,a2) +b3
 		a3 = relu(z3)
 		dz3 = relu_prime(z3)
 
-		z4 = np.dot(w4.T,a3) #+ b4
+		z4 = np.dot(w4.T,a3) + b4
 		a4 = softmax(z4)
 
 		self.put(dz1=dz1,dz2=dz2,dz3=dz3,a4=a4,a3=a3,a2=a2,a1=a1)
@@ -157,7 +157,7 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 4000)
+	costs = net.train(epoch = 200)
 
 	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
 	
