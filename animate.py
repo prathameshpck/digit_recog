@@ -12,12 +12,8 @@ def get_data():
 	return cost,accuracy
 
 while True:
-	
+	plt.ion()
 	x,y = get_data()
-
-
-
-	
 	line1 ,  = ax1.plot(x)
 	line2 ,  = ax2.plot(y)
 	fig.canvas.draw()

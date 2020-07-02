@@ -43,6 +43,16 @@ def accuracy(x,y):
 
 	return count*100/x.shape[0]
 
+def gradCheck(x,y):
+	e = 0.0000001
+
+	grad = x+e
+	grad -= (x-e)
+	grad /= 2*e
+
+	print(grad-y)
+
+
 
 
 
