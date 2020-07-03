@@ -19,4 +19,5 @@ while True:
 	fig.canvas.draw()
 	plt.pause(0.05)
 
-plt.show()
+plt.show(block = False)
+exit()

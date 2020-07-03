@@ -7,12 +7,12 @@ def sigmoid_prime(z):
 	return sigmoid(z)*(1-sigmoid(z))
 
 def relu(z):
-	return np.maximum(z,0.001)
+	return np.maximum(z,0.01)
 
 def relu_prime(x):
 	y = x
 
-	y[y<=0] = 0.001
+	y[y<=0] = 0.01
 	y[y>0] = 1
 
 	return y
@@ -43,14 +43,6 @@ def accuracy(x,y):
 
 	return count*100/x.shape[0]
 
-def gradCheck(x,y):
-	e = 0.0000001
-
-	grad = x+e
-	grad -= (x-e)
-	grad /= 2*e
-
-	print(grad-y)
 
 
 

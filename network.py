@@ -31,10 +31,10 @@ class network:
 		self.cache = {}
 		self.cache['x'] = x
 		self.cache['y'] = y
-		self.cache['w1'] = np.random.random((784,84))
-		self.cache['w2'] = np.random.random((84,72))
-		self.cache['w3'] = np.random.random((72,54))
-		self.cache['w4'] = np.random.random((54,10))
+		self.cache['w1'] = np.random.random((784,84)) * np.sqrt(2/784)
+		self.cache['w2'] = np.random.random((84,72)) * np.sqrt(2/84)
+		self.cache['w3'] = np.random.random((72,54)) * np.sqrt(2/72)
+		self.cache['w4'] = np.random.random((54,10)) * np.sqrt(2/54)
 		self.cache['b1'] = np.random.random((84,1))
 		self.cache['b2'] = np.random.random((72,1))
 		self.cache['b3'] = np.random.random((54,1))
@@ -66,10 +66,6 @@ class network:
 		z4 = np.dot(w4.T,a3) + b4
 		a4 = softmax(z4)
 
-		print(a4)
-		exit()
-
-		#print(b1.shape,b2.shape,b3.shape,b4.shape)
 
 		self.put(dz1=dz1,dz2=dz2,dz3=dz3,a4=a4,a3=a3,a2=a2,a1=a1)
 		return a4
@@ -116,16 +112,16 @@ class network:
 			x = self.cache['x']
 
 		a4,a3,a2,a1,w4,w3,w2,w1,dz3,dz2,dz1= self.get('a4','a3','a2','a1','w4','w3','w2','w1','dz3','dz2','dz1')
-		
+
 		theta4 = (a4 - y.T)
 		theta3 = np.multiply(dz3,np.dot(w4,theta4))
 		theta2 = np.multiply(dz2,np.dot(w3,theta3))
 		theta1 = np.multiply(dz1,np.dot(w2,theta2))
 
-		db4 =  np.sum(theta4 , axis = 1 , keepdims = True)/32
-		db3 =  np.sum(dz3 , axis = 1 , keepdims = True)/32
-		db2 =  np.sum(dz2 , axis = 1 , keepdims = True)/32
-		db1 =  np.sum(dz1 , axis = 1 , keepdims = True)/32
+		db4 =  np.sum(-theta4 , axis = 1 , keepdims = True)/32
+		db3 =  np.sum(theta3 , axis = 1 , keepdims = True)/32
+		db2 =  np.sum(theta2 , axis = 1 , keepdims = True)/32
+		db1 =  np.sum(theta1 , axis = 1 , keepdims = True)/32
 
 
 		dw4 = np.dot(theta4,a3.T)/32
@@ -136,7 +132,7 @@ class network:
 		self.put(db4=db4,db3=db3,db2=db2,db1=db1)
 		self.put(dw4=dw4,dw2=dw2,dw3=dw3,dw1=dw1)
 
-	def update(self,rate = 0.05):
+	def update(self,rate = 0.005):
 		w1,w2,w3,w4,dw1,dw2,dw3,dw4 = self.get('w1','w2','w3','w4','dw1','dw2','dw3','dw4')
 		b1,b2,b3,b4,db1,db2,db3,db4 = self.get('b1','b2','b3','b4','db1','db2','db3','db4')
 
@@ -145,6 +141,8 @@ class network:
 		w3 -= rate*dw3.T
 		w4 -= rate*dw4.T
 		
+		#rate /=10
+
 		b1 -= rate*db1
 		b2 -= rate*db2
 		b3 -= rate*db3
@@ -166,9 +164,9 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 50)
+	costs = net.train(epoch = 400)
 
-	costs = [cost for i,cost in enumerate(costs) if i%250 == 0]
+	costs = [cost for i,cost in enumerate(costs) if i%4000 == 0]
 	
 	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
 	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
