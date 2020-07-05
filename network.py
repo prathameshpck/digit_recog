@@ -4,6 +4,7 @@ from progressbar import ProgressBar
 import numpy as np
 from time import sleep
 import sys
+import itertools
 import matplotlib.pyplot as plt
 import csv
 
@@ -25,20 +26,26 @@ x_test = x_test.reshape(10000,784).T
 y_train = hotkey(y_train)
 y_test = hotkey(y_test)
 
+l = 0.000000025
 
 class network:
 	def __init__(self,x,y):
 		self.cache = {}
 		self.cache['x'] = x
 		self.cache['y'] = y
-		self.cache['w1'] = np.random.random((784,84)) * np.sqrt(2/784)
-		self.cache['w2'] = np.random.random((84,72)) * np.sqrt(2/84)
-		self.cache['w3'] = np.random.random((72,54)) * np.sqrt(2/72)
-		self.cache['w4'] = np.random.random((54,10)) * np.sqrt(2/54)
-		self.cache['b1'] = np.random.random((84,1))
-		self.cache['b2'] = np.random.random((72,1))
-		self.cache['b3'] = np.random.random((54,1))
+		self.cache['w1'] = np.random.random((784,310)) * np.sqrt(2/784)
+		self.cache['w2'] = np.random.random((310,270)) * np.sqrt(2/310)
+		self.cache['w3'] = np.random.random((270,250)) * np.sqrt(2/270)
+		self.cache['w4'] = np.random.random((250,10)) * np.sqrt(2/250)
+		self.cache['b1'] = np.random.random((310,1))
+		self.cache['b2'] = np.random.random((270,1))
+		self.cache['b3'] = np.random.random((250,1))
 		self.cache['b4'] = np.random.random((10,1))
+		self.cache['vdw'] = np.array([np.zeros((784 ,310)) , np.zeros((310,270)) , np.zeros((270,250)) , np.zeros((250,10)) ] , dtype = object)
+		self.cache['sdw'] = [np.zeros((784 , 310)) , np.zeros((310,270)) , np.zeros((270,250)) , np.zeros((250,10)) ]
+		self.cache['vdb'] = [np.zeros((310 , 1)) , np.zeros((270,1)) , np.zeros((250,1)) , np.zeros((10,1)) ]
+		self.cache['sdb'] = [np.zeros((310 , 1)) , np.zeros((270,1)) , np.zeros((250,1)) , np.zeros((10,1)) ]
+
 		with open("accuracy.csv" , "w") as f:
 			t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
 			t.writeheader()
@@ -73,9 +80,15 @@ class network:
 	def cost(self,y_hat,y = None):
 		if y is None:
 			y = self.cache['y'].T
-		cost = -np.sum(np.sum(y.T*np.log(y_hat),axis = 0))
 
-		return cost/32
+		w1,w2,w3,w4 = self.get('w1','w2','w3','w4')
+
+		cost = -np.sum(np.sum(y.T*np.log(y_hat),axis = 0))/32
+
+		reg = (l/2*32) *(np.sum(np.square(w1)) + np.sum(np.square(w2)) + np.sum(np.square(w3))+ np.sum(np.square(w4)))
+	
+		return cost + reg
+		
 
 	def train(self,epoch = 100):
 		x = self.cache['x']
@@ -84,15 +97,23 @@ class network:
 		batches = np.split(x,1875,axis=1)
 		targets = np.split(y,1875)
 		for i in bar(range(epoch)):
+			if i > 75:
+				rate = 0.000001
+			elif i> 45:
+				rate = 0.000005
+			else:
+				rate = 0.000025
+				
 			with open("accuracy.csv" , "a") as f:
 				t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
 			
 				for num,(batch,target) in enumerate(zip(batches,targets)):
 					out = self.forward(x = batch)
 					costs.append(self.cost(out,target))
-					
+						
 					self.backward(y=target,x=batch)
-					self.update()
+					self.adam(i,rate = rate)
+					
 
 				pred = np.argmax(out.T, axis = 1).reshape(32,1)
 				y = np.argmax(target , axis = 1).T.reshape(32,1)
@@ -124,10 +145,10 @@ class network:
 		db1 =  np.sum(theta1 , axis = 1 , keepdims = True)/32
 
 
-		dw4 = np.dot(theta4,a3.T)/32
-		dw3 = np.dot(theta3,a2.T)/32
-		dw2 = np.dot(theta2,a1.T)/32
-		dw1 = np.dot(theta1,x.T)/32
+		dw4 = np.dot(theta4,a3.T)/32 + ((l/32)*w4).T
+		dw3 = np.dot(theta3,a2.T)/32 + ((l/32)*w3).T
+		dw2 = np.dot(theta2,a1.T)/32 + ((l/32)*w2).T
+		dw1 = np.dot(theta1,x.T)/32 + ((l/32)*w1).T
 
 		self.put(db4=db4,db3=db3,db2=db2,db1=db1)
 		self.put(dw4=dw4,dw2=dw2,dw3=dw3,dw1=dw1)
@@ -141,13 +162,54 @@ class network:
 		w3 -= rate*dw3.T
 		w4 -= rate*dw4.T
 		
-		#rate /=10
 
 		b1 -= rate*db1
 		b2 -= rate*db2
 		b3 -= rate*db3
 		b4 -= rate*db4
 
+		self.put(b1=b1,b2=b2,b3=b3,b4=b4)
+		self.put(w1=w1,w2=w2,w3=w3,w4=w4)
+
+
+	def adam(self,t , beta1 = 0.9 , beta2 = 0.999 , e = 1e-8 , rate=0.0005):
+		vdw = self.get('vdw')
+		sdw = self.get('sdw')
+		vdb = self.get('vdb')
+		sdb = self.get('sdb')
+
+		w1,w2,w3,w4,dw1,dw2,dw3,dw4 = self.get('w1','w2','w3','w4','dw1','dw2','dw3','dw4')
+		b1,b2,b3,b4,db1,db2,db3,db4 = self.get('b1','b2','b3','b4','db1','db2','db3','db4')
+		dw = [dw1,dw2,dw3,dw4]
+		db = [db1,db2,db3,db4]
+
+		#print(np.array(vdw).shape, end = '\n')
+		#print(list(map(lambda v: print(len(v)) , vdw)))
+
+
+		vdw = [(beta1*x + (1-beta1)*y.T) for x,y in zip(*vdw,dw)]
+		sdw = [(beta2*x + (1-beta2)*np.square(y.T)) for x,y in zip(*sdw,dw)] 
+		vdb = [(beta1*x + (1-beta1)*y) for x,y in zip(*vdb,db)]
+		sdb = [(beta2*x + (1-beta2)*np.square(y)) for x,y in zip(*sdb,db)] 
+
+		vdw1,vdw2,vdw3,vdw4 = vdw 
+		sdw1,sdw2,sdw3,sdw4 = sdw
+		vdb1,vdb2,vdb3,vdb4 = vdb
+		sdb1,sdb2,sdb3,sdb4 = sdb
+		
+
+		w1 -= rate*((vdw1)/(np.sqrt(sdw1)+e))
+		w2 -= rate*((vdw2)/(np.sqrt(sdw2)+e))
+		w3 -= rate*((vdw3)/(np.sqrt(sdw3)+e))
+		w4 -= rate*((vdw4)/(np.sqrt(sdw4)+e))
+
+		b1 -= rate*((vdb1)/(np.sqrt(sdb1)+e))
+		b2 -= rate*((vdb2)/(np.sqrt(sdb2)+e))
+		b3 -= rate*((vdb3)/(np.sqrt(sdb3)+e))
+		b4 -= rate*((vdb4)/(np.sqrt(sdb4)+e))
+
+
+		self.put(vdw=vdw,sdw=sdw,vdb=vdb,sdb=sdb)
 		self.put(b1=b1,b2=b2,b3=b3,b4=b4)
 		self.put(w1=w1,w2=w2,w3=w3,w4=w4)
 
@@ -164,9 +226,9 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 400)
+	costs = net.train(epoch = 100)
 
-	costs = [cost for i,cost in enumerate(costs) if i%4000 == 0]
+	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
 	
 	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
 	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
