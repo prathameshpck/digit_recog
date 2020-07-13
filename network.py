@@ -10,7 +10,7 @@ import csv
 
 
 bar = ProgressBar()
-np.set_printoptions(threshold = sys.maxsize)
+#np.set_printoptions(threshold = sys.maxsize)
 x_train,y_train, x_test,y_test = load()
 
 factor = 0.99/255
@@ -26,7 +26,7 @@ x_test = x_test.reshape(10000,784).T
 y_train = hotkey(y_train)
 y_test = hotkey(y_test)
 
-l = 0.000000025
+l = 0.000001
 
 class network:
 	def __init__(self,x,y):
@@ -94,20 +94,29 @@ class network:
 		x = self.cache['x']
 		y = self.cache['y']
 		costs = []
-		batches = np.split(x,1875,axis=1)
-		targets = np.split(y,1875)
+		batches = np.array(np.split(x,1875,axis=1))
+		targets = np.array(np.split(y,1875))
 		for i in bar(range(epoch)):
-			if i > 75:
-				rate = 0.000001
-			elif i> 45:
-				rate = 0.000005
+			if i > 65:
+				rate = 0.00000005
+			elif i> 40:
+				rate = 0.00000025
 			else:
-				rate = 0.000025
+				rate = 0.000005
 				
+			r = np.random.permutation(1875)
+			batches = batches[r]
+			targets = targets[r]
+			
 			with open("accuracy.csv" , "a") as f:
 				t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
 			
 				for num,(batch,target) in enumerate(zip(batches,targets)):
+					
+					s = np.random.permutation(batch.shape[1])
+					batch = batch[: , s]
+					target = target[s , :]
+
 					out = self.forward(x = batch)
 					costs.append(self.cost(out,target))
 						
@@ -226,9 +235,9 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 100)
+	costs = net.train(epoch = 300)
 
-	costs = [cost for i,cost in enumerate(costs) if i%1000 == 0]
+	costs = [cost for i,cost in enumerate(costs) if i%500 == 0]
 	
 	pred = np.argmax((net.forward(x_test).T), axis = 1).reshape(10000,1)
 	y = np.argmax(y_test , axis = 1).T.reshape(10000,1)
