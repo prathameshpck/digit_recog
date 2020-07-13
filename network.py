@@ -8,20 +8,21 @@ import itertools
 import matplotlib.pyplot as plt
 import csv
 
-
 bar = ProgressBar()
-#np.set_printoptions(threshold = sys.maxsize)
+
 x_train,y_train, x_test,y_test = load()
 
-factor = 0.99/255
 
 x_train = ((x_train - np.mean(x_train))/ np.std(x_train))/255 
-
-
 x_train = x_train.reshape(60000,784).T
 
-
 x_test = x_test.reshape(10000,784).T
+
+devx = x_test[: , 9000:]
+devy = y_test[9000:] 
+
+x_test = x_test[: , :9000].T
+y_test = y_test[:9000]
 
 y_train = hotkey(y_train)
 y_test = hotkey(y_test)
@@ -47,7 +48,7 @@ class network:
 		self.cache['sdb'] = [np.zeros((310 , 1)) , np.zeros((270,1)) , np.zeros((250,1)) , np.zeros((10,1)) ]
 
 		with open("accuracy.csv" , "w") as f:
-			t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
+			t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy",'accuracy_dev'])
 			t.writeheader()
 
 		
@@ -109,7 +110,7 @@ class network:
 			targets = targets[r]
 			
 			with open("accuracy.csv" , "a") as f:
-				t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy"])
+				t = csv.DictWriter(f , fieldnames = ['cost' , "accuracy",'accuracy_dev'])
 			
 				for num,(batch,target) in enumerate(zip(batches,targets)):
 					
@@ -124,13 +125,18 @@ class network:
 					self.adam(i,rate = rate)
 					
 
+
+				dev_pred = np.argmax((self.forward(devx).T), axis = 1).reshape(1000,1)
+				
 				pred = np.argmax(out.T, axis = 1).reshape(32,1)
 				y = np.argmax(target , axis = 1).T.reshape(32,1)
 
-				t.writerow({'cost' : self.cost(out,target) , 'accuracy' : accuracy(pred,y)})
+				t.writerow({'cost' : self.cost(out,target) , 'accuracy' : accuracy(pred,y) , 'accuracy_dev': accuracy(dev_pred,devy)})
 
 
 		return costs
+
+
 
 
 
