@@ -27,7 +27,7 @@ y_test = y_test[:9000]
 y_train = hotkey(y_train)
 y_test = hotkey(y_test)
 
-l = 0.000001
+l = 0.00001
 
 class network:
 	def __init__(self,x,y):
@@ -98,12 +98,12 @@ class network:
 		batches = np.array(np.split(x,1875,axis=1))
 		targets = np.array(np.split(y,1875))
 		for i in bar(range(epoch)):
-			if i > 65:
-				rate = 0.00000005
-			elif i> 40:
-				rate = 0.00000025
+			if i > 650:
+			 	rate = 0.0000005
+			elif i> 400:
+			 	rate = 0.0000025
 			else:
-				rate = 0.000005
+			 	rate = 0.000005
 				
 			r = np.random.permutation(1875)
 			batches = batches[r]
@@ -241,7 +241,7 @@ class network:
 def main():
 	net = network(x_train,y_train)
 
-	costs = net.train(epoch = 300)
+	costs = net.train(epoch = 1000)
 
 	costs = [cost for i,cost in enumerate(costs) if i%500 == 0]
 	
